@@ -1,0 +1,23 @@
+{
+  "name": "dsp-sf-agent-deployment",
+  "description": "DSP skill for deploying an Agentforce shopper agent to a Storefront Next storefront via MIAW — Messaging Session, Embedded Service Deployment, and the storefront-side integration with its prechat identity bridge.",
+  "version": "1.1.0",
+  "owner": {
+    "name": "David Siguenza",
+    "email": "mccc.gpt@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "dsp-sf-agent-deployment",
+      "description": "Step-by-step procedure to wire an Agentforce agent to a B2C Commerce Storefront Next storefront: MIAW messaging channel + Omni-Channel Flow routing, Embedded Service Deployment + code snippet, and the storefront integration (single-JSON commerceAgent env var, CSP, ✨ header launcher incl. custom shells, commercecloud-alias domain gotcha, MRT deploy, prechat identity bridge). Field-tested end-to-end against zzse-258/261 / storm orgs.",
+      "author": {
+        "name": "David Siguenza"
+      },
+      "license": "Apache-2.0",
+      "source": "./skills/dsp-sf-agent-deployment",
+      "category": "productivity",
+      "strict": false,
+      "version": "1.1.0"
+    }
+  ]
+}
