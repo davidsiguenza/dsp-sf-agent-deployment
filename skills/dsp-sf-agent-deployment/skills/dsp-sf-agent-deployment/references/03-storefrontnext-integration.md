@@ -17,7 +17,7 @@ The Storefront Next template ships `<ShopperAgent>` in `src/components/shopper-a
 
 It's mounted in `src/root.tsx` when `appConfig.commerceAgent?.enabled` is `'true'` or `true`.
 
-> **CRITICAL — there is no floating chat bubble.** The template sets `hideChatButtonOnLoad = true` (`shopper-agent-window.tsx`), deliberately hiding Salesforce's native launcher. The **visible launcher is a ✨ Sparkles icon in the site header** that calls `launchChat()`. If your storefront uses a customized header, that icon may be missing — see §3.
+> **CRITICAL — there is no floating chat bubble by default.** The template sets `hideChatButtonOnLoad = true` (`shopper-agent-window.tsx`), deliberately hiding Salesforce's native launcher. The **visible launcher is a ✨ Sparkles icon in the site header** that calls `launchChat()` (opens the chat directly). If your storefront uses a customized header, that icon may be missing — see §3 Step B. You can also make the ✨ *reveal* the native floating bubble instead of opening the chat — see §3 Step D (`open` vs `reveal`).
 
 > The OOTB component validates `scriptSourceUrl` against `TRUSTED_SALESFORCE_DOMAINS` (`salesforce.com`, `salesforce-scrt.com`, `pc-rnd.*`, `my.site.com`). The MIAW bootstrap URL ends in `.my.site.com`, so it passes. A custom Experience Cloud domain would need adding to that list.
 
@@ -129,6 +129,34 @@ Match the surrounding button styling so it fits the brand (the snippet above sui
 ### Step C — verify
 
 `pnpm typecheck` and lint the file you touched. Pre-existing color-linter errors elsewhere in a branded file aren't yours, but if you removed/added imports make sure the file still passes `eslint <file> --max-warnings 0` for the lines you changed.
+
+### Step D — launcher behavior: `open` vs `reveal` (optional UX choice)
+
+The ✨ icon can behave in two ways. This is a **UI preference per client**, not part of the MIAW connection — keep it out of the `commerceAgent` JSON (that JSON is validated for exactly its keys by `validateShopperAgentConfig`; an extra key breaks the gate). Decide it in the header button itself.
+
+The SDK exposes two **independent** `utilAPI` calls:
+- `utilAPI.showChatButton()` — reveals Salesforce's native floating bubble (does **not** open anything). Once revealed, the bubble stays pinned.
+- `utilAPI.launchChat()` — opens the conversation window.
+
+| Behavior | What clicking ✨ does | Clicks to chat | How |
+|---|---|---|---|
+| **`open`** (default; what `launchChat()` does) | Opens the chat window directly | 1 | `onClick={() => launchChat()}` — the OOTB helper calls `showChatButton()` **then** `launchChat()` internally |
+| **`reveal`** | Reveals the native floating bubble; user clicks the bubble to open | 2 | call **only** `utilAPI.showChatButton()` on click, not `launchChat()` |
+
+Most storefronts want **`open`** (one click straight to the chat) — that is the default and needs no extra code. Only choose **`reveal`** when the client explicitly wants the persistent native bubble pattern. For `reveal`, replace the `onClick` with a small helper that calls only `showChatButton()`:
+
+```tsx
+// reveal-mode handler — shows the native bubble without opening the window
+const revealChatButton = () => {
+    window.embeddedservice_bootstrap?.utilAPI?.showChatButton?.();
+};
+// ...
+<button onClick={revealChatButton} aria-label="Mostrar asistente">
+    <SparklesIcon />
+</button>
+```
+
+Do **not** flip `hideChatButtonOnLoad` to achieve `reveal` — that would show the bubble on every page load with no ✨ gate. Gating + an explicit `showChatButton()` keeps the bubble opt-in.
 
 ---
 
