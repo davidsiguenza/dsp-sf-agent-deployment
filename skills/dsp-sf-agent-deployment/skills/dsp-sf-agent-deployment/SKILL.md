@@ -16,6 +16,17 @@ End-to-end procedure to connect an **already-built Agentforce agent** to a **Sto
 
 ---
 
+## Before you start — ask: text-only or voice?
+
+**First thing, ask the user one question:** *"Will this agent use voice, or text chat only?"* The answer changes exactly one step:
+
+- **Text only** → skip the microphone `Permissions-Policy` step entirely (checklist 10b / ref 03 §4.1). Nothing else changes.
+- **Voice (LiveKit)** → you MUST also allow the `microphone` in `Permissions-Policy`, or voice fails with `NotAllowedError: Permission denied` the moment the shopper clicks the mic. Do checklist step 10b.
+
+Everything else (env var, CSP, launcher, domain, MRT deploy, prechat bridge) is identical for both. If the user is unsure, default to **text only** — adding the mic policy later is a one-line change + redeploy, and granting the mic when it isn't used is an unnecessary permission.
+
+---
+
 ## 5-minute fast path (agent + channel already exist)
 
 When the agent is built **and** the user has already created the Messaging Channel + Embedded Service Deployment in the UI (Phase 1–2 done), the storefront wireup is ~5 minutes:
@@ -27,6 +38,7 @@ When the agent is built **and** the user has already created the Messaging Chann
    ```
 3. **Extend CSP** in `config.server.ts` — spread `defaultCspDirectives`, append `*.my.site.com` + `*.salesforce-scrt.com` (+ `wss://`) across script/style/connect/frame/img-src (ref 03 §4).
 4. **Verify the launcher.** `grep -n "AppShell\|@/components/header'" src/routes/_app.tsx` → if a **custom shell**, add the ✨ button to it (ref 03 §3 step B). If OOTB header, it's already wired.
+   - *(voice only)* also allow `microphone` for `self` + the literal `https://<org>.my.site.com` in `permissionsPolicy` (ref 03 §4.1) — skip for text-only agents.
 5. **Deploy + open the right domain:**
    ```bash
    b2c mrt env var set "PUBLIC__app__commerceAgent=<json>" -p <MRT_PROJECT> -e <MRT_TARGET>   # runtime, no rebuild
