@@ -60,8 +60,8 @@ Each phase has a detailed reference file. **Read the relevant reference before e
 |---|---|---|
 | 1 | [`references/01-miaw-messaging-session.md`](references/01-miaw-messaging-session.md) | Routing Config, Queue, Omni-Channel Flow, Messaging Channel |
 | 2 | [`references/02-embedded-service-deployment.md`](references/02-embedded-service-deployment.md) | Deployment, Install Code Snippet, harvest values, Publish |
-| 3 | [`references/03-storefrontnext-integration.md`](references/03-storefrontnext-integration.md) | `<ShopperAgent>`, single-JSON env var, CSP, ✨ header launcher (OOTB vs custom shell), domain gotcha, MRT deploy, prechat bridge |
-| — | [`references/04-troubleshooting.md`](references/04-troubleshooting.md) | 9 symptoms + diagnosis trees |
+| 3 | [`references/03-storefrontnext-integration.md`](references/03-storefrontnext-integration.md) | `<ShopperAgent>`, single-JSON env var, CSP, voice mic Permissions-Policy, ✨ header launcher (OOTB vs custom shell), domain gotcha, MRT deploy, prechat bridge |
+| — | [`references/04-troubleshooting.md`](references/04-troubleshooting.md) | 10 symptoms + diagnosis trees |
 
 ---
 
@@ -94,6 +94,7 @@ Work top to bottom. Each item links to the section in its reference file.
 **Phase 3 — Storefront Next:**
 9. [ ] Set **one** env var `PUBLIC__app__commerceAgent` = minified JSON with **7 keys** (`enabled`, `embeddedServiceName`, `embeddedServiceEndpoint`, `scriptSourceUrl`, `scrt2Url`, `salesforceOrgId`, `siteId`). **NOT** the obsolete `PUBLIC__app__commerceAgent__*` per-key scheme.
 10. [ ] Extend the **CSP** allowlist with `*.my.site.com` and `*.salesforce-scrt.com` (script-src, connect-src incl. wss, frame-src, img-src, style-src) — spread `defaultCspDirectives` in `config.server.ts`.
+10b. [ ] *(Voice agents only)* Extend **`Permissions-Policy`** to allow `microphone` for `self` + the **literal** `https://<org>.my.site.com` iframe origin — else LiveKit voice fails with `NotAllowedError: Permission denied` (ref 03 §4.1). Wildcards are rejected here; the chat iframe also needs `allow="microphone"` (SDK-side).
 11. [ ] **Verify the launcher.** There is no floating bubble — the launcher is a **✨ Sparkles icon in the header**. Check whether the storefront uses the **OOTB header** or a **custom shell**; if custom, **add the ✨ launcher to it** (see ref 03 §3). On localhost you can only confirm the icon *renders* — the chat won't open there (domain gotcha).
 12. [ ] **Deploy to MRT** and open the **commercecloud alias domain** (`*.my.commercecloud.salesforce.com`) — env var via `b2c mrt env var set` (runtime), code/CSP via `pnpm build` + `sfnext push`. Click ✨ → chat opens and answers (guest path).
 13. [ ] *(For personalization only)* Wire the **six-link prechat identity bridge** — including the **two manual steps** (Hidden Pre-Chat Fields + **Publish**; and Parameter Mappings) that everyone forgets. Verify with the `MessagingSession.SFN_*__c` SOQL query.
@@ -118,6 +119,8 @@ These are field-learned, not in the official guide. Internalize them before star
 6. **`/api/agentforce/*` returns HTML 405 unless you add `/api/**` to `app.url.excludeRoutes`.** The multi-site URL prefix wraps API routes. This is NOT a `.ts` vs `.tsx` issue (both register fine in `flatRoutes()`).
 
 7. **The agent hallucinates products → set `additional_parameter__DISABLE_GROUNDEDNESS: True`** in the `.agent` config block, and re-**Activate**. (Agent-side fix; relevant when deterministic recommendation text gets paraphrased into nonexistent products.)
+
+8. **Voice fails with `NotAllowedError: Permission denied` → the default `Permissions-Policy` denies the mic.** The storefront ships `microphone=()` (deny). Voice (LiveKit) calls `getUserMedia` and is blocked with no prompt; the follow-on `localParticipant` undefined error is just the cascade. Allow `microphone` for `self` + the **literal** iframe origin (no wildcards — unlike CSP) in `config.server.ts`, and ensure the chat iframe carries `allow="microphone"` (SDK-side). Ref 03 §4.1 / troubleshooting §10. Text-only agents don't need this.
 
 ---
 

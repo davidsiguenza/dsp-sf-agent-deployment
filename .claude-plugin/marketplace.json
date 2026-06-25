@@ -1,7 +1,7 @@
 {
   "name": "dsp-sf-agent-deployment",
   "description": "DSP skill for deploying an Agentforce shopper agent to a Storefront Next storefront via MIAW — Messaging Session, Embedded Service Deployment, and the storefront-side integration with its prechat identity bridge.",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "owner": {
     "name": "David Siguenza",
     "email": "mccc.gpt@gmail.com"
@@ -17,7 +17,7 @@
       "source": "./skills/dsp-sf-agent-deployment",
       "category": "productivity",
       "strict": false,
-      "version": "1.1.0"
+      "version": "1.2.0"
     }
   ]
 }

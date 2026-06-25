@@ -198,6 +198,48 @@ Also confirm `app.url.excludeRoutes` includes the routes that must not get the m
 
 ---
 
+## 4.1 Voice (LiveKit) — allow the microphone in `Permissions-Policy` {#voice-mic}
+
+**Only if your agent has voice enabled.** Text chat does not need this; skip it otherwise.
+
+When the shopper clicks the voice/mic control, the agent opens a **LiveKit** WebRTC room and calls `getUserMedia` for the microphone. The default storefront security headers **deny the mic outright** — `defaultSecurityHeaders.permissionsPolicy` is `{ camera: [], microphone: [], geolocation: [] }`, and an empty allowlist serializes to `microphone=()` (deny for everyone, including iframes). The browser then refuses the mic **without even prompting**, and you see:
+
+```
+Failed to connect to room: NotAllowedError: Permission denied
+[VoiceStateService] Voice connection failed: NotAllowedError: Permission denied
+# …then a cascade (the room never initialized):
+Cannot read properties of undefined (reading 'localParticipant')
+```
+
+> The second error (`localParticipant` is undefined) is **a symptom, not a second bug** — after the mic-denied connect fails, the LiveKit `room` object is never created, so the next access throws. Fix the mic and both disappear.
+
+**Fix — extend `permissionsPolicy` in the same `headers` block as the CSP** (`config.server.ts`):
+
+```ts
+// Permissions-Policy does NOT accept wildcard subdomains (unlike CSP),
+// so this must be the LITERAL Experience Cloud origin that hosts the chat
+// iframe — keep it in sync with the embeddedServiceEndpoint host.
+const SHOPPER_AGENT_SITE_ORIGIN_LITERAL = 'https://<org>.my.site.com';
+
+headers: {
+    ...defaultSecurityHeaders,
+    permissionsPolicy: {
+        ...defaultSecurityHeaders.permissionsPolicy,        // keep camera/geolocation denied
+        microphone: ['self', SHOPPER_AGENT_SITE_ORIGIN_LITERAL],
+    },
+    csp: { /* …as in §4… */ },
+}
+```
+
+Two gotchas that bite here:
+
+1. **Literal origin, not a wildcard.** CSP accepts `*.my.site.com`; `Permissions-Policy` does **not** — it needs the exact `https://<org>.my.site.com`. A wildcard is silently rejected and the mic stays blocked.
+2. **The parent page is only half of it.** The header above grants the mic to the *page* and *delegates* it to the iframe origin. The chat **iframe itself must also carry `allow="microphone"`** — that attribute is emitted by Salesforce's Embedded Messaging SDK, not by the storefront. Verify in DevTools → Elements on `div.embedded-messaging iframe`. If it's missing, the page-side header alone won't help; that's a Salesforce/Embedded Service side issue, not a storefront one.
+
+Like the CSP, this lives in the **bundle** → `pnpm build` + `sfnext push`, then **hard reload (Cmd+Shift+R)**. Also confirm the browser hasn't blocked the mic for the domain (lock icon → Site permissions → Microphone → Allow). Field-verified working on zzse-258.
+
+---
+
 ## 5. The domain gotcha — localhost will NEVER open the chat
 
 This is the single most confusing part. **The launcher renders everywhere (it's storefront UI), but the chat only *connects* from the one domain Salesforce trusts.**

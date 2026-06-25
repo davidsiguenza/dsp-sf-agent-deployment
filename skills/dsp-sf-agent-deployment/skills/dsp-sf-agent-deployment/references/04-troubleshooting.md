@@ -167,6 +167,26 @@ Fix: deploy to MRT and open the **commercecloud alias domain**, or use the Caddy
 
 ---
 
+## Symptom 10 — Voice fails with `NotAllowedError: Permission denied` {#symptom-10}
+
+Voice (LiveKit) only. The chat opens fine but clicking the mic/voice control throws:
+
+```
+Failed to connect to room: NotAllowedError: Permission denied
+[VoiceStateService] Voice connection failed: NotAllowedError: Permission denied
+Cannot read properties of undefined (reading 'localParticipant')
+```
+
+The mic is denied by the storefront's **`Permissions-Policy`**. The default security headers ship `microphone=()` (deny for everyone, including iframes), so the browser refuses `getUserMedia` **without prompting**. The `localParticipant` error is just the cascade — the LiveKit `room` never initialized.
+
+Fix: extend `permissionsPolicy` in the `headers` block of `config.server.ts` to grant the mic to `self` + the **literal** Experience Cloud iframe origin (Phase 3 §4.1 [#voice-mic](03-storefrontnext-integration.md#voice-mic)). Two traps:
+- **Literal origin, not a wildcard** — `Permissions-Policy` rejects `*.my.site.com`; use the exact `https://<org>.my.site.com`.
+- **Also needs `allow="microphone"` on the chat iframe** — emitted by the Embedded Messaging SDK, not the storefront. Check `div.embedded-messaging iframe` in DevTools; if missing, it's a Salesforce-side issue.
+
+Then `pnpm build` + `sfnext push`, hard reload, and confirm the browser itself hasn't blocked the mic for the domain.
+
+---
+
 ## Quick reference — SF CLI v2 syntax
 
 This skill uses Salesforce CLI v2 (space-separated, not hyphenated): `sf data query`, `sf project deploy start`, `sf project retrieve start`, `sf apex log tail`, `sf org login web -a <alias>`.
