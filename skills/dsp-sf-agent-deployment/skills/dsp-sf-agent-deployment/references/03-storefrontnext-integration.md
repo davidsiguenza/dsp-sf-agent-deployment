@@ -221,7 +221,7 @@ What is and isn't authorized:
 
 So the local-dev validation splits in two:
 - **On localhost you can ONLY verify the ✨ icon renders** (config is valid, header wired). The chat will still throw `frame-ancestors`/CORS — that is expected, not a bug.
-- **To actually open the chat you must deploy to MRT and open the commercecloud alias domain** (or use the Caddy proxy under that wildcard, §7).
+- **To actually open the chat you must deploy to MRT and open the commercecloud alias domain** (or use the Caddy proxy under that wildcard, §8).
 
 ---
 
